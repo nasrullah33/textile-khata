@@ -65,7 +65,7 @@ const closeSheet=()=>$('#sh')?.remove();
 function shell(title,body,back){app.innerHTML=`<header>${back?'<button id="bk">→</button>':''}<b>${esc(title)}</b>${back?'':'<button id="out">خروج</button>'}</header><main>${body}</main>${back?'':`<nav>${[['home','ڈیش بورڈ'],['cust','گاہک'],['supp','سپلائر'],['prod','مال'],['rep','رپورٹ']].map(([k,l])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}">${l}</button>`).join('')}</nav>`}`;
  if(back)$('#bk').onclick=()=>go(S.tab);else $('#out').onclick=()=>sb.auth.signOut()}
 document.addEventListener('click',e=>{const t=e.target.closest('[data-tab]');if(t)return go(t.dataset.tab);const r=e.target.closest('[data-go]');if(r)return go(r.dataset.go,r.dataset.id);const c=e.target.closest('[data-rc]');if(c)return receipt(c.dataset.rc);const v=e.target.closest('[data-sv]');if(v)return voucher(v.dataset.sv);const b=e.target.closest('[data-bill]');if(b)billView(b.dataset.bill)});
-function go(v,id){S.view=v;S.id=id;if(['home','cust','supp','prod','rep'].includes(v))S.tab=v;closeSheet();({home,cust:custList,supp:suppList,cd:custDetail,sd:suppDetail,prod:prodList,bill:billNew,rep:report,col:colNew,chq:chqList,aman:amanList,sinfo:shopInfo,bak:backup,ship:shipList}[v])(id).catch(e=>toast(e.message||String(e),1))}
+function go(v,id){S.view=v;S.id=id;if(['home','cust','supp','prod','rep'].includes(v))S.tab=v;closeSheet();({home,cust:custList,supp:suppList,cd:custDetail,sd:suppDetail,prod:prodList,bill:billNew,rep:report,col:colNew,chq:chqList,aman:amanList,sinfo:shopInfo,bak:backup,ship:shipList,adm:admin}[v])(id).catch(e=>toast(e.message||String(e),1))}
 
 /* ---- sign in ---- */
 function setup(){app.innerHTML=`<div class="box"><h2>ٹیکسٹائل کھاتہ</h2><p>Supabase کی publishable key یہاں ایک بار پیسٹ کریں (secret یا service-role key ہرگز نہیں)۔</p><input id="k" dir="ltr" placeholder="sb_publishable_..."><button class="pri" id="sv" style="width:100%">محفوظ کریں</button></div>`;$('#sv').onclick=()=>{const k=$('#k').value.trim();if(!k||/secret|service_role/i.test(k))return toast('درست publishable key لکھیں',1);localStorage.setItem('tk_key',k);start()}}
@@ -74,7 +74,7 @@ function login(){app.innerHTML=`<div class="box"><h2>ٹیکسٹائل کھاتہ
  $('#rk').onclick=e=>{e.preventDefault();localStorage.removeItem('tk_key');setup()}}
 function start(){const k=localStorage.getItem('tk_key');if(!k)return setup();sb=supabase.createClient(URL_,k);
  sb.auth.onAuthStateChange((ev,s)=>{const u=s?.user||null;if(ev==='TOKEN_REFRESHED')return;if(S.loaded&&u?.id===S.user?.id)return;S.loaded=true;S.user=u;u?loadShop():login()})}
-async function loadShop(){app.innerHTML='<p class="c">…</p>';try{S.shop=(await q(sb.from('shops').select('*').eq('owner_id',S.user.id).limit(1)))[0];S.shop?go('home'):noShop()}catch(e){toast(e.message,1)}}
+async function loadShop(){app.innerHTML='<p class="c">…</p>';try{S.admin=(await q(sb.from('profiles').select('role').eq('id',S.user.id)))[0]?.role==='admin';S.shop=(await q(sb.from('shops').select('*').eq('owner_id',S.user.id).limit(1)))[0];S.shop?go('home'):noShop()}catch(e){toast(e.message,1)}}
 async function noShop(){const adm=(await q(sb.from('profiles').select('role').eq('id',S.user.id)))[0]?.role==='admin';
  app.innerHTML=`<div class="box"><h3>آپ کی دکان ابھی نہیں بنی</h3>${adm?`<label>دکان کا نام<input id="bn"></label><label>فون<input id="ph" dir="ltr"></label><button class="pri" id="mk" style="width:100%">دکان بنائیں</button>`:'<p>ایڈمن سے رابطہ کریں۔</p>'}<button id="so" style="width:100%;margin-top:10px">خروج</button></div>`;
  $('#so').onclick=()=>sb.auth.signOut();
@@ -136,7 +136,9 @@ async function voucher(no){$('#rc')?.remove();const tx=await q(sb.from('supplier
  document.body.append(d);$('#pr').onclick=()=>window.print();$('#cr').onclick=()=>d.remove()}
 
 async function homeBills(){const b=await q(sb.from('bills').select('id,bill_no,bill_date,total,customers(name)').eq('shop_id',S.shop.id).order('created_at',{ascending:false}).limit(5));
- $('main').insertAdjacentHTML('beforeend','<h4>آخری بلز</h4>'+(b.map(x=>`<div class="card row" data-bill="${x.id}"><div>${esc(x.customers.name)}<small dir="ltr">${esc(x.bill_no)} · ${x.bill_date}</small></div><div class="amt">${n(x.total)}</div></div>`).join('')||'<p class="c">ابھی کوئی بل نہیں</p>'))}
+ $('main').insertAdjacentHTML('beforeend','<h4>آخری بلز</h4>'+(b.map(x=>`<div class="card row" data-bill="${x.id}"><div>${esc(x.customers.name)}<small dir="ltr">${esc(x.bill_no)} · ${x.bill_date}</small></div><div class="amt">${n(x.total)}</div></div>`).join('')||'<p class="c">ابھی کوئی بل نہیں</p>'));
+ if(S.shop.status==='trial'&&S.shop.trial_ends_at){const d=Math.ceil((new Date(S.shop.trial_ends_at)-Date.now())/864e5);$('main').insertAdjacentHTML('afterbegin',`<div class="card c">${d>0?`ٹرائل ختم ہونے میں ${d} دن`:'ٹرائل ختم ہو چکا'}</div>`)}
+ if(S.admin)$('main').insertAdjacentHTML('beforeend','<button class="pri" data-go="adm" style="width:100%;margin-top:10px">ایڈمن: تمام دکانیں</button>')}
 async function prodList(){shell('مال اور ریٹ','<input id="sq" placeholder="تلاش…"><div id="ls" class="c">…</div><button class="pri fab" id="add">+ نیا مال</button>');
  const p=await q(sb.from('products').select('*').eq('shop_id',S.shop.id).eq('is_active',true).order('name'));
  const form=x=>sheet(x?'مال میں تبدیلی':'نیا مال',`<label>نام<input id="f1" value="${esc(x?.name||'')}"></label><label>یونٹ (میٹر، تھان، پیس…)<input id="f2" value="${esc(x?.unit||'')}"></label><label>خرید ریٹ<input id="f3" type="number" inputmode="decimal" step="0.01" dir="ltr" value="${x?x.purchase_rate:0}"></label><label>فروخت ریٹ<input id="f4" type="number" inputmode="decimal" step="0.01" dir="ltr" value="${x?x.selling_rate:0}"></label><label>اسٹاک<input id="f5" type="number" inputmode="decimal" step="0.001" dir="ltr" value="${x?x.stock_qty:0}"></label>`,async()=>{const nm=$('#f1').value.trim();if(!nm)throw new Error('نام لازمی ہے');
@@ -257,5 +259,19 @@ async function shipList(){shell('شپمنٹ ٹریکنگ','<input id="sq" placeh
    await q(sb.rpc('save_shipment',{p_shop_id:S.shop.id,p_id:x?x.id:null,p_request_id:rid,p_data:{entry_date:$('#sd').value||today(),supplier_id:$('#sup').value,agent_id:$('#ag').value,customer_id:$('#cu').value,item:$('#it').value,kg:$('#kg').value,yards:$('#yd').value,bales:$('#bl').value,pieces:$('#pc').value,shipping_company:$('#sc').value,customer_price:$('#cp').value,duty_price:$('#dp').value,loading_price:$('#lp').value,truck_no:$('#tr').value,stage:$('#st').value,note:$('#nt').value,post_to_purchase:$('#pp').checked,post_to_customer:$('#pcu').checked}}));
    closeSheet();toast('محفوظ ہو گیا');shipList()})};
  $('#add').onclick=()=>form(null);$('#ls').onclick=e=>{const r=e.target.closest('[data-s]');if(r)form(sh.find(x=>x.id===r.dataset.s))}}
+
+async function admin(){shell('ایڈمن: دکانیں','<div id="ls" class="c">…</div><button class="pri fab" id="add">+ نئی دکان</button>',1);
+ const sh=await q(sb.from('shops').select('*').order('created_at',{ascending:false}));
+ const now=Date.now(),lab=x=>x.status==='trial'?(x.trial_ends_at&&new Date(x.trial_ends_at)<now?'ٹرائل ختم':'ٹرائل'):({active:'فعال',expired:'ختم',suspended:'معطل'}[x.status]||x.status);
+ $('#ls').className='';$('#ls').innerHTML=`<p class="c">${sh.length} / 50 دکانیں</p>`+sh.map(x=>`<div class="card row" data-a="${x.id}"><div>${esc(x.business_name)}<small dir="ltr">${esc(x.phone||'')}</small></div><div class="amt">${lab(x)}<small>${x.status==='trial'&&x.trial_ends_at?' '+Math.ceil((new Date(x.trial_ends_at)-now)/864e5)+' دن':''}</small></div></div>`).join('');
+ $('#add').onclick=()=>sheet('نئی دکان اور شاپ کیپر اکاؤنٹ','<label>دکان کا نام<input id="a1"></label><label>فون<input id="a2" dir="ltr" inputmode="tel"></label><label>ای میل (لاگ اِن)<input id="a3" type="email" dir="ltr" autocomplete="off"></label><label>پاس ورڈ (کم از کم 8 حروف)<input id="a4" type="password" dir="ltr" autocomplete="new-password"></label><label>ٹرائل<select id="a5"><option value="7">7 دن</option><option value="14">14 دن</option><option value="30">30 دن</option></select></label>',async()=>{
+  const body={action:'create_shop',business_name:$('#a1').value,phone:$('#a2').value,email:$('#a3').value,password:$('#a4').value,trial_days:+$('#a5').value};
+  const{error}=await sb.functions.invoke('super-function',{body});
+  if(error){let m=error.message;try{const j=await error.context.json();m=j.error||m}catch(_){}throw new Error(m)}
+  closeSheet();toast('دکان بن گئی');admin()});
+ $('#ls').onclick=e=>{const r=e.target.closest('[data-a]');if(!r)return;const x=sh.find(y=>y.id===r.dataset.a);
+  sheet(x.business_name,`<p dir="ltr">${esc(x.phone||'')}${x.trial_ends_at?'<br>Trial ends: '+x.trial_ends_at.slice(0,10):''}</p><label>حالت<select id="ss">${[['trial','ٹرائل'],['active','فعال'],['expired','ختم'],['suspended','معطل']].map(([k,l])=>`<option value="${k}" ${k===x.status?'selected':''}>${l}</option>`).join('')}</select></label><label>ٹرائل بڑھائیں (آج سے، حالت ٹرائل ہو جائے گی)<select id="sd2"><option value="">نہیں</option><option>7</option><option>14</option><option>30</option></select></label>`,async()=>{
+   const d=$('#sd2').value,u={status:$('#ss').value};if(d){u.status='trial';u.trial_days=+d;u.trial_ends_at=new Date(Date.now()+d*864e5).toISOString()}
+   await q(sb.from('shops').update(u).eq('id',x.id));closeSheet();toast('محفوظ ہو گیا');admin()})}}
 start();
 </script></body></html>
