@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ٹیکسٹائل کھاتہ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&display=swap">
+<style>
+:root{--bg:#f2f4f8;--cd:#fff;--ink:#17203f;--mu:#667085;--pr:#1b2a6b;--bd:#dde2ec;--rd:#b3261e;--gn:#0b7a4b;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#10142a;--cd:#1a2040;--ink:#eef0fa;--mu:#9aa3c7;--pr:#5b74ff;--bd:#2c3562;--rd:#ff8a80;--gn:#5fd8a0;color-scheme:dark}}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:'Noto Naskh Arabic',Tahoma,sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.7;padding-bottom:80px}
+header{position:sticky;top:0;z-index:5;background:var(--pr);color:#fff;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;min-height:56px}
+header b{flex:1;font-size:20px}
+main{padding:14px;max-width:640px;margin:auto}
+button,input,select{font:inherit;color:inherit}
+input,select{width:100%;min-height:50px;border:1px solid var(--bd);background:var(--cd);border-radius:10px;padding:8px 12px;margin:4px 0 10px}
+label{display:block;color:var(--mu);font-size:15px}
+button{min-height:50px;border:1px solid var(--bd);background:var(--cd);border-radius:10px;padding:8px 16px;cursor:pointer}
+button.pri{background:var(--pr);color:#fff;border-color:var(--pr)}
+button:disabled{opacity:.5}
+header button{background:transparent;color:#fff;border-color:#ffffff55;min-height:42px}
+.card{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g .card{margin:0}.g small{color:var(--mu);display:block;font-size:14px}.g b{font-size:21px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer}
+.row small{color:var(--mu);display:block}
+.amt{text-align:left;direction:ltr;font-weight:700;white-space:nowrap}
+.amt small{font-weight:400}
+.pos{color:var(--rd)}.neg{color:var(--gn)}
+.sp .pos{color:var(--rd)}
+.bar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;margin:10px 0}
+.bar button{padding:8px 4px}
+.fab{position:fixed;inset-inline:14px;bottom:78px;width:auto;max-width:612px;margin:auto}
+nav{position:fixed;bottom:0;inset-inline:0;display:grid;grid-template-columns:repeat(5,1fr);background:var(--cd);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{border:0;border-radius:0;background:none;min-height:60px;padding:0 2px;font-size:15px}
+nav .on{color:var(--pr);font-weight:700;box-shadow:inset 0 3px var(--pr)}
+.c{text-align:center;color:var(--mu)}
+.box{max-width:420px;margin:12vh auto;padding:20px}
+.tb{width:100%;border-collapse:collapse;font-size:15px}
+.tb th,.tb td{padding:6px 4px;border-bottom:1px solid var(--bd);text-align:right}
+.tb td.n{direction:ltr;text-align:left}
+.tb tr[data-rc],.tb tr[data-sv]{cursor:pointer}
+.sc{overflow-x:auto}
+.ov{position:fixed;inset:0;background:#000a;z-index:20;display:flex;align-items:flex-end}
+.sheet{background:var(--cd);width:100%;max-width:640px;margin:auto;border-radius:16px 16px 0 0;padding:16px;max-height:92vh;overflow:auto}
+.bt{display:grid;grid-template-columns:2fr 1fr;gap:8px}
+#tt{position:fixed;top:70px;inset-inline:14px;z-index:40;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px}
+#tt.bad{background:var(--rd);color:#fff}
+@media print{body>*:not(#rc){display:none!important}#rc{position:static;background:#fff;color:#000;display:block}#rc .sheet{max-width:none;background:#fff;color:#000}#rc .bt{display:none}}
+</style></head>
+<body><div id="app"><p class="c">…</p></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const URL_='https://lokvjsdzqwwkvhrxxkir.supabase.co';
+let sb,S={loaded:false,user:null,shop:null,tab:'home'};
+const $=s=>document.querySelector(s),app=$('#app');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n=v=>Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const today=()=>new Date().toLocaleDateString('en-CA');
+const TL={debit:'ادھار',credit:'کریڈٹ',payment:'وصولی',purchase:'خریداری',transfer_out:'ٹرانسفر (ڈیبٹ)',transfer_in:'ٹرانسفر (کریڈٹ)'};
+function toast(m,bad){const t=document.createElement('div');t.id='tt';t.className=bad?'bad':'';t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),bad?5000:2200)}
+async function q(p){const r=await p;if(r.error){if(/JWT|expired/i.test(r.error.message)){toast('سیشن ختم ہو گیا، دوبارہ لاگ اِن کریں',1);sb.auth.signOut()}throw r.error}return r.data}
+async function busy(b,f){if(b.disabled)return;b.disabled=true;const t=b.textContent;b.textContent='…';try{await f()}catch(e){toast(e.message||String(e),1)}finally{b.disabled=false;b.textContent=t}}
+function sheet(title,html,ok){closeSheet();const d=document.createElement('div');d.id='sh';d.className='ov';d.innerHTML=`<div class="sheet"><h3>${esc(title)}</h3>${html}<div class="bt"><button class="pri" id="ok">محفوظ کریں</button><button id="cx">منسوخ</button></div></div>`;document.body.append(d);$('#cx').onclick=closeSheet;$('#ok').onclick=e=>busy(e.target,ok)}
+const closeSheet=()=>$('#sh')?.remove();
+function shell(title,body,back){app.innerHTML=`<header>${back?'<button id="bk">→</button>':''}<b>${esc(title)}</b>${back?'':'<button id="out">خروج</button>'}</header><main>${body}</main>${back?'':`<nav>${[['home','ڈیش بورڈ'],['cust','گاہک'],['supp','سپلائر'],['prod','مال'],['rep','رپورٹ']].map(([k,l])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}">${l}</button>`).join('')}</nav>`}`;
+ if(back)$('#bk').onclick=()=>go(S.tab);else $('#out').onclick=()=>sb.auth.signOut()}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-tab]');if(t)return go(t.dataset.tab);const r=e.target.closest('[data-go]');if(r)return go(r.dataset.go,r.dataset.id);const c=e.target.closest('[data-rc]');if(c)return receipt(c.dataset.rc);const v=e.target.closest('[data-sv]');if(v)return voucher(v.dataset.sv);const b=e.target.closest('[data-bill]');if(b)billView(b.dataset.bill)});
+function go(v,id){S.view=v;S.id=id;if(['home','cust','supp','prod','rep'].includes(v))S.tab=v;closeSheet();({home,cust:custList,supp:suppList,cd:custDetail,sd:suppDetail,prod:prodList,bill:billNew,rep:report,col:colNew,chq:chqList,aman:amanList,sinfo:shopInfo,bak:backup,ship:shipList,adm:admin}[v])(id).catch(e=>toast(e.message||String(e),1))}
+
+/* ---- sign in ---- */
+function setup(){app.innerHTML=`<div class="box"><h2>ٹیکسٹائل کھاتہ</h2><p>Supabase کی publishable key یہاں ایک بار پیسٹ کریں (secret یا service-role key ہرگز نہیں)۔</p><input id="k" dir="ltr" placeholder="sb_publishable_..."><button class="pri" id="sv" style="width:100%">محفوظ کریں</button></div>`;$('#sv').onclick=()=>{const k=$('#k').value.trim();if(!k||/secret|service_role/i.test(k))return toast('درست publishable key لکھیں',1);localStorage.setItem('tk_key',k);start()}}
+function login(){app.innerHTML=`<div class="box"><h2>ٹیکسٹائل کھاتہ</h2><label>ای میل<input id="em" type="email" dir="ltr" autocomplete="username"></label><label>پاس ورڈ<input id="pw" type="password" dir="ltr" autocomplete="current-password"></label><button class="pri" id="go" style="width:100%">لاگ اِن</button><p class="c"><a href="#" id="rk">key تبدیل کریں</a></p></div>`;
+ $('#go').onclick=e=>busy(e.target,async()=>{const{error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});if(error)throw error});
+ $('#rk').onclick=e=>{e.preventDefault();localStorage.removeItem('tk_key');setup()}}
+function start(){const k=localStorage.getItem('tk_key');if(!k)return setup();sb=supabase.createClient(URL_,k);
+ sb.auth.onAuthStateChange((ev,s)=>{const u=s?.user||null;if(ev==='TOKEN_REFRESHED')return;if(S.loaded&&u?.id===S.user?.id)return;S.loaded=true;S.user=u;u?loadShop():login()})}
+async function loadShop(){app.innerHTML='<p class="c">…</p>';try{S.admin=(await q(sb.from('profiles').select('role').eq('id',S.user.id)))[0]?.role==='admin';S.shop=(await q(sb.from('shops').select('*').eq('owner_id',S.user.id).limit(1)))[0];if(S.shop&&!S.admin&&(['expired','suspended'].includes(S.shop.status)||(S.shop.status==='trial'&&S.shop.trial_ends_at&&new Date(S.shop.trial_ends_at)<Date.now())))return locked();S.shop?go('home'):noShop()}catch(e){toast(e.message,1)}}
+function locked(){app.innerHTML=`<div class="box"><h3>اکاؤنٹ بند ہے</h3><p>${S.shop.status==='suspended'?'آپ کا اکاؤنٹ معطل ہے۔':'آپ کا ٹرائل یا اکاؤنٹ ختم ہو چکا ہے۔'} براہ کرم ایڈمن سے رابطہ کریں۔</p><p class="c">آپ کا ڈیٹا محفوظ ہے۔</p><button id="so" style="width:100%">خروج</button></div>`;$('#so').onclick=()=>sb.auth.signOut()}
+async function noShop(){const adm=(await q(sb.from('profiles').select('role').eq('id',S.user.id)))[0]?.role==='admin';
+ app.innerHTML=`<div class="box"><h3>آپ کی دکان ابھی نہیں بنی</h3>${adm?`<label>دکان کا نام<input id="bn"></label><label>فون<input id="ph" dir="ltr"></label><button class="pri" id="mk" style="width:100%">دکان بنائیں</button>`:'<p>ایڈمن سے رابطہ کریں۔</p>'}<button id="so" style="width:100%;margin-top:10px">خروج</button></div>`;
+ $('#so').onclick=()=>sb.auth.signOut();
+ if(adm)$('#mk').onclick=e=>busy(e.target,async()=>{const b=$('#bn').value.trim(),p=$('#ph').value.trim();if(!b||!p)throw new Error('نام اور فون لازمی ہیں');await q(sb.from('shops').insert({owner_id:S.user.id,business_name:b,phone:p,status:'active'}));loadShop()})}
+
+/* ---- dashboard ---- */
+async function home(){shell(S.shop.business_name,'<p class="c">…</p>');const d=await q(sb.rpc('get_dashboard',{p_shop_id:S.shop.id,p_date:today()}));
+ const c=(l,v,m)=>`<div class="card"><small>${l}</small><b>${m?n(v):v}</b></div>`;
+ $('main').innerHTML=`<div class="g" style="margin-bottom:10px"><button class="pri" data-go="bill">+ نیا بل</button><button class="pri" data-go="col">+ وصولی</button></div><div class="g" style="margin-bottom:10px"><button data-go="chq">چیک</button><button data-go="aman">امانت</button></div><div class="g" style="margin-bottom:10px"><button data-go="sinfo">بزنس معلومات</button><button data-go="bak">بیک اپ</button></div><button class="pri" data-go="ship" style="width:100%;margin-bottom:10px">شپمنٹ ٹریکنگ</button><div class="g">${c('گاہک',d.customer_count)}${c('سپلائر',d.supplier_count)}${c('کل وصولیاں (لینے ہیں)',d.total_receivables,1)}${c('کل ادائیگیاں (دینے ہیں)',d.total_payables,1)}${c('آج کی وصولی',d.today_collections,1)}${c('آج کی ادائیگی',d.today_payments,1)}${c('آج کی فروخت',d.today_sales,1)}${c('آج کی خریداری',d.today_purchases,1)}</div>`;homeBills()}
+
+/* ---- lists ---- */
+function rowH(go,id,name,ph,b,sup){const owe=sup?b>0:b>0;return `<div class="card row" data-go="${go}" data-id="${id}"><div>${esc(name)}<small dir="ltr">${esc(ph||'')}</small></div><div class="amt ${owe?'pos':'neg'}">${n(Math.abs(b))}<small> ${b===0?'':(sup?(b>0?'دینے ہیں':'لینے ہیں'):(b>0?'لینے ہیں':'دینے ہیں'))}</small></div></div>`}
+async function list(kind){const sup=kind==='s',T=sup?'suppliers':'customers',B=sup?'supplier_balances':'customer_balances',K=sup?'supplier_id':'customer_id';
+ shell(sup?'سپلائر':'گاہک','<input id="sq" placeholder="نام یا فون سے تلاش…"><div id="ls" class="c">…</div><button class="pri fab" id="add">+ نیا</button>');
+ const[c,b]=await Promise.all([q(sb.from(T).select('id,name,phone').eq('shop_id',S.shop.id).eq('is_active',true).order('name')),q(sb.from(B).select(`${K},balance`).eq('shop_id',S.shop.id))]);
+ const bm=Object.fromEntries(b.map(x=>[x[K],Number(x.balance)]));
+ const draw=()=>{const t=$('#sq').value.trim().toLowerCase();const r=c.filter(x=>(x.name+(x.phone||'')).toLowerCase().includes(t));$('#ls').className='';$('#ls').innerHTML=r.map(x=>rowH(sup?'sd':'cd',x.id,x.name,x.phone,bm[x.id]||0,sup)).join('')||'<p class="c">کوئی نتیجہ نہیں۔ نیچے + دبا کر شامل کریں۔</p>'};
+ draw();$('#sq').oninput=draw;
+ $('#add').onclick=()=>sheet(sup?'نیا سپلائر':'نیا گاہک',`<label>نام<input id="f1"></label><label>فون<input id="f2" dir="ltr" inputmode="tel"></label><label>پتہ<input id="f3"></label><label>ابتدائی بیلنس<input id="f4" type="number" inputmode="decimal" step="0.01" value="0" dir="ltr"></label>`,async()=>{const nm=$('#f1').value.trim();if(!nm)throw new Error('نام لازمی ہے');await q(sb.from(T).insert({shop_id:S.shop.id,name:nm,phone:$('#f2').value.trim()||null,address:$('#f3').value.trim()||null,opening_balance:parseFloat($('#f4').value)||0}));closeSheet();toast('محفوظ ہو گیا');go(sup?'supp':'cust')}) }
+const custList=()=>list('c'),suppList=()=>list('s');
+
+/* ---- customer ---- */
+async function custDetail(id,from,to){shell('…','<p class="c">…</p>',1);
+ const[c]=await q(sb.from('customers').select('*').eq('id',id));const[b]=await q(sb.from('customer_balances').select('balance').eq('customer_id',id));
+ const st=await q(sb.rpc('get_customer_statement',{p_customer_id:id,p_from:from||null,p_to:to||null}));const bal=Number(b?.balance||0);
+ shell(c.name,`<div class="card"><small dir="ltr">${esc(c.phone||'')}</small><b class="amt ${bal>0?'pos':'neg'}" style="font-size:24px">${n(Math.abs(bal))} ${bal>0?'لینے ہیں':bal<0?'دینے ہیں':''}</b></div>
+ <div class="bar"><button class="pri" data-t="debit">ادھار</button><button class="pri" data-t="payment">وصولی</button><button data-t="credit">کریڈٹ</button><button data-go="bill" data-id="${id}">نیا بل</button></div>
+ <div class="g" style="margin-bottom:10px"><label>سے<input id="sf" type="date" value="${from||''}"></label><label>تک<input id="sto" type="date" value="${to||''}"></label></div><div class="bar" style="margin-top:0"><button id="fb">فلٹر</button><button id="pb">اسٹیٹمنٹ پرنٹ</button></div><div class="card sc"><table class="tb" id="stt"><tr><th>تاریخ</th><th>تفصیل</th><th>ڈیبٹ</th><th>کریڈٹ</th><th>بیلنس</th></tr>${st.map(r=>`<tr ${r.receipt_no?`data-rc="${esc(r.receipt_no)}"`:''}><td>${r.txn_date||''}</td><td>${esc(r.seq===0?'ابتدائی بیلنس':(r.receipt_no+' '+(r.details||TL[r.txn_type])))}</td><td class="n">${r.seq?n(r.debit):''}</td><td class="n">${r.seq?n(r.credit):''}</td><td class="n">${n(r.running_balance)}</td></tr>`).join('')}</table></div><p class="c">رسید دوبارہ دیکھنے کے لیے لائن پر ٹیپ کریں</p>`,1);
+ document.querySelectorAll('[data-t]').forEach(x=>x.onclick=()=>{const t=x.dataset.t,rid=crypto.randomUUID();
+  sheet(TL[t]+' - '+c.name,`<label>رقم<input id="am" type="number" inputmode="decimal" step="0.01" min="0" dir="ltr"></label><label>تاریخ<input id="dt" type="date" value="${today()}"></label><label>تفصیل<input id="dd"></label>`,async()=>{const a=parseFloat($('#am').value);if(!(a>0))throw new Error('درست رقم لکھیں');
+   const r=await q(sb.rpc('add_customer_transaction',{p_customer_id:id,p_type:t,p_amount:a,p_details:$('#dd').value.trim()||null,p_date:$('#dt').value||today(),p_request_id:rid}));closeSheet();await custDetail(id);receipt(r.receipt_no)})});
+ $('#fb').onclick=()=>{const f=$('#sf').value||null,t=$('#sto').value||null;if(f&&t&&f>t)return toast('درست تاریخیں چنیں',1);custDetail(id,f,t).catch(e=>toast(e.message,1))};
+ $('#pb').onclick=()=>{$('#rc')?.remove();const o=document.createElement('div');o.id='rc';o.className='ov';o.innerHTML=`<div class="sheet">${hdr()}<hr><p>گاہک: ${esc(c.name)}<br>مدت: <span dir="ltr">${from||'شروع'} → ${to||'آج'}</span></p><div class="sc">${$('#stt').outerHTML}</div><p>موجودہ بیلنس: <b dir="ltr">${n(bal)}</b></p><div class="bt"><button class="pri" id="p9">پرنٹ</button><button id="c9">بند</button></div></div>`;document.body.append(o);$('#p9').onclick=()=>window.print();$('#c9').onclick=()=>o.remove()}}
+async function receipt(no){const[t]=await q(sb.from('customer_transactions').select('*,customers(name,phone)').eq('shop_id',S.shop.id).eq('receipt_no',no));if(!t)return toast('رسید نہیں ملی',1);
+ const[b]=await q(sb.from('customer_balances').select('balance').eq('customer_id',t.customer_id));const d=document.createElement('div');d.id='rc';d.className='ov';
+ d.innerHTML=`<div class="sheet">${hdr()}<hr><p>رسید نمبر: <b dir="ltr">${esc(t.receipt_no)}</b><br>تاریخ: <span dir="ltr">${t.txn_date}</span><br>گاہک: ${esc(t.customers.name)}<br>قسم: ${TL[t.txn_type]}<br>${t.payment_method?`طریقہ: ${esc(t.payment_method)}<br>`:''}${t.account_name?`اکاؤنٹ: ${esc(t.account_name)}<br>`:''}${t.third_party?`3rd Party: ${esc(t.third_party)}<br>`:''}رقم: <b dir="ltr">${n(t.amount)}</b><br>تفصیل: ${esc(t.details||'-')}<br>موجودہ بیلنس: <span dir="ltr">${n(b?.balance)}</span></p><div class="bt"><button class="pri" id="pr">پرنٹ</button><button id="cr">بند</button></div></div>`;
+ document.body.append(d);$('#pr').onclick=()=>window.print();$('#cr').onclick=()=>d.remove()}
+
+/* ---- supplier ---- */
+async function suppDetail(id){shell('…','<p class="c">…</p>',1);
+ const[s]=await q(sb.from('suppliers').select('*').eq('id',id));const tx=await q(sb.from('supplier_transactions').select('*').eq('supplier_id',id).order('txn_date').order('created_at'));
+ let bal=Number(s.opening_balance);const rows=tx.map(r=>{const cr=['purchase','transfer_in'].includes(r.txn_type);bal+=cr?Number(r.amount):-Number(r.amount);return{...r,cr,bal}});
+ const cur=bal;
+ shell(s.name,`<div class="card"><small dir="ltr">${esc(s.phone||'')}</small><b class="amt ${cur>0?'pos':'neg'}" style="font-size:24px">${n(Math.abs(cur))} ${cur>0?'دینے ہیں':cur<0?'لینے ہیں':''}</b></div>
+ <div class="bar"><button class="pri" data-t="purchase">خریداری</button><button class="pri" data-t="payment">ادائیگی</button><button data-t="transfer">ٹرانسفر</button></div>
+ <div class="card sc"><table class="tb"><tr><th>تاریخ</th><th>تفصیل</th><th>ڈیبٹ</th><th>کریڈٹ</th><th>بیلنس</th></tr><tr><td></td><td>ابتدائی بیلنس</td><td></td><td></td><td class="n">${n(s.opening_balance)}</td></tr>${rows.map(r=>`<tr data-sv="${esc(r.voucher_no)}"><td>${r.txn_date}</td><td>${esc(r.voucher_no+' '+TL[r.txn_type]+(r.details?' - '+r.details:''))}</td><td class="n">${r.cr?'':n(r.amount)}</td><td class="n">${r.cr?n(r.amount):''}</td><td class="n">${n(r.bal)}</td></tr>`).join('')}</table></div><p class="c">وائوچر دوبارہ دیکھنے کے لیے لائن پر ٹیپ کریں</p>`,1);
+ document.querySelectorAll('[data-t]').forEach(x=>x.onclick=async()=>{const t=x.dataset.t,rid=crypto.randomUUID();let opts='';
+  if(t==='transfer'){const o=(await q(sb.from('suppliers').select('id,name').eq('shop_id',S.shop.id).eq('is_active',true).neq('id',id).order('name')));if(!o.length)return toast('ٹرانسفر کے لیے دوسرا سپلائر شامل کریں',1);opts=`<label>جس سپلائر کو کریڈٹ ہوگا<select id="to">${o.map(y=>`<option value="${y.id}">${esc(y.name)}</option>`).join('')}</select></label>`}
+  sheet((t==='transfer'?'ٹرانسفر (اس سپلائر کو ڈیبٹ) - ':TL[t]+' - ')+s.name,`${opts}<label>رقم<input id="am" type="number" inputmode="decimal" step="0.01" min="0" dir="ltr"></label><label>تاریخ<input id="dt" type="date" value="${today()}"></label><label>تفصیل / نوٹ<input id="dd"></label>`,async()=>{const a=parseFloat($('#am').value);if(!(a>0))throw new Error('درست رقم لکھیں');
+   const p={p_amount:a,p_details:$('#dd').value.trim()||null,p_date:$('#dt').value||today(),p_request_id:rid};
+   const r=t==='transfer'?await q(sb.rpc('transfer_between_suppliers',{...p,p_from:id,p_to:$('#to').value})):await q(sb.rpc('add_supplier_transaction',{...p,p_supplier_id:id,p_type:t}));
+   closeSheet();toast('محفوظ ہو گیا');await suppDetail(id);voucher(r.voucher_no)})})}
+async function voucher(no){$('#rc')?.remove();const tx=await q(sb.from('supplier_transactions').select('*').eq('shop_id',S.shop.id).eq('voucher_no',no));if(!tx.length)return toast('وائوچر نہیں ملا',1);
+ const nm=Object.fromEntries((await q(sb.from('suppliers').select('id,name').in('id',tx.map(x=>x.supplier_id)))).map(x=>[x.id,x.name]));
+ const o=tx.find(x=>x.txn_type==='transfer_out'),i=tx.find(x=>x.txn_type==='transfer_in'),t=o||tx[0],tr=o&&i;
+ const who=tr?`ڈیبٹ: ${esc(nm[o.supplier_id])}<br>کریڈٹ: ${esc(nm[i.supplier_id])}`:`سپلائر: ${esc(nm[t.supplier_id])}`;
+ const d=document.createElement('div');d.id='rc';d.className='ov';
+ d.innerHTML=`<div class="sheet">${hdr()}<hr><p>وائوچر نمبر: <b dir="ltr">${esc(t.voucher_no)}</b><br>تاریخ: <span dir="ltr">${t.txn_date}</span><br>${who}<br>قسم: ${tr?'سپلائر ٹرانسفر':TL[t.txn_type]}<br>رقم: <b dir="ltr">${n(t.amount)}</b><br>نوٹ: ${esc(t.details||'-')}</p><div class="bt"><button class="pri" id="pr">پرنٹ</button><button id="cr">بند</button></div></div>`;
+ document.body.append(d);$('#pr').onclick=()=>window.print();$('#cr').onclick=()=>d.remove()}
+
+async function homeBills(){const b=await q(sb.from('bills').select('id,bill_no,bill_date,total,customers(name)').eq('shop_id',S.shop.id).order('created_at',{ascending:false}).limit(5));
+ $('main').insertAdjacentHTML('beforeend','<h4>آخری بلز</h4>'+(b.map(x=>`<div class="card row" data-bill="${x.id}"><div>${esc(x.customers.name)}<small dir="ltr">${esc(x.bill_no)} · ${x.bill_date}</small></div><div class="amt">${n(x.total)}</div></div>`).join('')||'<p class="c">ابھی کوئی بل نہیں</p>'));
+ if(S.shop.status==='trial'&&S.shop.trial_ends_at){const d=Math.ceil((new Date(S.shop.trial_ends_at)-Date.now())/864e5);$('main').insertAdjacentHTML('afterbegin',`<div class="card c">${d>0?`ٹرائل ختم ہونے میں ${d} دن`:'ٹرائل ختم ہو چکا'}</div>`)}
+ if(S.admin)$('main').insertAdjacentHTML('beforeend','<button class="pri" data-go="adm" style="width:100%;margin-top:10px">ایڈمن: تمام دکانیں</button>')}
+async function prodList(){shell('مال اور ریٹ','<input id="sq" placeholder="تلاش…"><div id="ls" class="c">…</div><button class="pri fab" id="add">+ نیا مال</button>');
+ const p=await q(sb.from('products').select('*').eq('shop_id',S.shop.id).eq('is_active',true).order('name'));
+ const form=x=>sheet(x?'مال میں تبدیلی':'نیا مال',`<label>نام<input id="f1" value="${esc(x?.name||'')}"></label><label>یونٹ (میٹر، تھان، پیس…)<input id="f2" value="${esc(x?.unit||'')}"></label><label>خرید ریٹ<input id="f3" type="number" inputmode="decimal" step="0.01" dir="ltr" value="${x?x.purchase_rate:0}"></label><label>فروخت ریٹ<input id="f4" type="number" inputmode="decimal" step="0.01" dir="ltr" value="${x?x.selling_rate:0}"></label><label>اسٹاک<input id="f5" type="number" inputmode="decimal" step="0.001" dir="ltr" value="${x?x.stock_qty:0}"></label>`,async()=>{const nm=$('#f1').value.trim();if(!nm)throw new Error('نام لازمی ہے');
+  const v={name:nm,unit:$('#f2').value.trim()||'piece',purchase_rate:parseFloat($('#f3').value)||0,selling_rate:parseFloat($('#f4').value)||0,stock_qty:parseFloat($('#f5').value)||0};
+  if(x)await q(sb.from('products').update({...v,updated_at:new Date().toISOString()}).eq('id',x.id));else await q(sb.from('products').insert({...v,shop_id:S.shop.id}));
+  closeSheet();toast('محفوظ ہو گیا');prodList()});
+ const draw=()=>{const t=$('#sq').value.trim().toLowerCase();$('#ls').className='';$('#ls').innerHTML=p.filter(x=>x.name.toLowerCase().includes(t)).map(x=>`<div class="card row" data-p="${x.id}"><div>${esc(x.name)}<small>${esc(x.unit)} · خرید ${n(x.purchase_rate)}</small></div><div class="amt">${n(x.selling_rate)}<small> اسٹاک ${Number(x.stock_qty)}</small></div></div>`).join('')||'<p class="c">کوئی مال نہیں۔ + دبا کر شامل کریں۔</p>'};
+ draw();$('#sq').oninput=draw;$('#ls').onclick=e=>{const r=e.target.closest('[data-p]');if(r)form(p.find(x=>x.id===r.dataset.p))};$('#add').onclick=()=>form(null)}
+async function billNew(cid){shell('نیا بل','<p class="c">…</p>',1);
+ const[cs,ps]=await Promise.all([q(sb.from('customers').select('id,name').eq('shop_id',S.shop.id).eq('is_active',true).order('name')),q(sb.from('products').select('id,name,unit,selling_rate').eq('shop_id',S.shop.id).eq('is_active',true).order('name'))]);
+ if(!cs.length){toast('پہلے گاہک شامل کریں',1);return go('cust')}
+ const rid=crypto.randomUUID(),po='<option value="">— دستی آئٹم —</option>'+ps.map(p=>`<option value="${p.id}" data-r="${p.selling_rate}" data-n="${esc(p.name)}">${esc(p.name)}${p.unit?' ('+esc(p.unit)+')':''}</option>`).join('');
+ $('main').innerHTML=`<label>گاہک<select id="bc">${cs.map(c=>`<option value="${c.id}" ${c.id===cid?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label>تاریخ<input id="bd" type="date" value="${today()}"></label><div id="it"></div><button id="ai" style="width:100%;margin-bottom:10px">+ آئٹم شامل کریں</button>
+ <div class="card"><label>ڈسکاؤنٹ<select id="dt"><option value="">نہیں</option><option value="amount">Rs (رقم)</option><option value="percent">% (فیصد)</option></select></label><input id="dv" type="number" inputmode="decimal" step="0.01" dir="ltr" placeholder="ڈسکاؤنٹ کی مقدار"><div id="tot"></div></div>
+ <label>ابھی وصول ہوئی رقم<input id="pd" type="number" inputmode="decimal" step="0.01" dir="ltr" value="0"></label><label>طریقہ<select id="pm"><option>نقد</option><option>بینک ٹرانسفر</option><option>ایزی پیسہ / جاز کیش</option><option>چیک</option></select></label><label>اکاؤنٹ کا نام<input id="pa"></label><label>3rd Party (اگر کسی اور نے ادا کی)<input id="p3"></label><label>نوٹ<input id="nt"></label><button class="pri" id="sv" style="width:100%">بل محفوظ کریں</button>`;
+ const calc=()=>{let s=0;document.querySelectorAll('.ir').forEach(r=>{const a=(parseFloat(r.querySelector('.q').value)||0)*(parseFloat(r.querySelector('.r').value)||0);r.querySelector('.a').textContent=n(a);s+=a});
+  const t=$('#dt').value,v=parseFloat($('#dv').value)||0,d=t==='percent'?s*Math.min(Math.max(v,0),100)/100:t==='amount'?Math.min(Math.max(v,0),s):0,tot=s-d,pd=parseFloat($('#pd').value)||0;
+  $('#tot').innerHTML=`کل: <b>${n(s)}</b> − ڈسکاؤنٹ: <b>${n(d)}</b> = <b>${n(tot)}</b><br>باقی رہے گا: <b>${n(tot-pd)}</b>`;return tot};
+ const add=()=>{const r=document.createElement('div');r.className='card ir';r.innerHTML=`<select class="p">${po}</select><input class="nm" placeholder="آئٹم کا نام"><div class="g"><input class="q" type="number" inputmode="decimal" step="0.001" placeholder="مقدار" dir="ltr"><input class="r" type="number" inputmode="decimal" step="0.01" placeholder="ریٹ" dir="ltr"></div><div style="display:flex;justify-content:space-between;align-items:center"><span>رقم: <b class="a" dir="ltr">0.00</b></span><button class="x">ہٹائیں</button></div>`;
+  r.querySelector('.p').onchange=e=>{const o=e.target.selectedOptions[0];r.querySelector('.nm').value=o.dataset.n||'';r.querySelector('.r').value=o.dataset.r||'';calc()};
+  r.querySelector('.x').onclick=()=>{if(document.querySelectorAll('.ir').length>1){r.remove();calc()}};$('#it').append(r)};
+ add();calc();$('#ai').onclick=add;$('main').oninput=calc;$('main').onchange=calc;
+ $('#sv').onclick=e=>busy(e.target,async()=>{const items=[...document.querySelectorAll('.ir')].map(r=>({product_id:r.querySelector('.p').value||null,name:r.querySelector('.nm').value.trim(),qty:parseFloat(r.querySelector('.q').value),rate:parseFloat(r.querySelector('.r').value)})).filter(x=>x.name||x.product_id||x.qty||x.rate);
+  if(!items.length||items.some(x=>!(x.qty>0)||!(x.rate>=0)||!(x.name||x.product_id)))throw new Error('ہر آئٹم کا نام، مقدار اور ریٹ لکھیں');
+  const tot=calc(),pd=parseFloat($('#pd').value)||0;if(pd>tot)throw new Error('وصول رقم بل سے زیادہ نہیں ہو سکتی');
+  const b=await q(sb.rpc('create_bill',{p_customer_id:$('#bc').value,p_date:$('#bd').value||today(),p_items:items,p_discount_type:$('#dt').value||null,p_discount_value:parseFloat($('#dv').value)||0,p_paid:pd,p_method:pd>0?$('#pm').value:null,p_account:$('#pa').value.trim()||null,p_third_party:$('#p3').value.trim()||null,p_note:$('#nt').value.trim()||null,p_request_id:rid}));
+  go('cd',$('#bc').value);billView(b.id)})}
+async function billView(id){$('#rc')?.remove();const[b]=await q(sb.from('bills').select('*,customers(name,phone)').eq('id',id));if(!b)return toast('بل نہیں ملا',1);
+ const it=await q(sb.from('bill_items').select('*').eq('bill_id',id));const[bl]=await q(sb.from('customer_balances').select('balance').eq('customer_id',b.customer_id));
+ const d=document.createElement('div');d.id='rc';d.className='ov';
+ d.innerHTML=`<div class="sheet">${hdr()}<hr><p>بل نمبر: <b dir="ltr">${esc(b.bill_no)}</b><br>تاریخ: <span dir="ltr">${b.bill_date}</span><br>گاہک: ${esc(b.customers.name)}</p>
+ <table class="tb"><tr><th>مال</th><th>مقدار</th><th>ریٹ</th><th>رقم</th></tr>${it.map(x=>`<tr><td>${esc(x.name)}</td><td class="n">${Number(x.qty)}</td><td class="n">${n(x.rate)}</td><td class="n">${n(x.amount)}</td></tr>`).join('')}</table>
+ <p>ذیلی کل: <span dir="ltr">${n(b.subtotal)}</span>${b.discount_amount>0?`<br>ڈسکاؤنٹ: <span dir="ltr">${n(b.discount_amount)}</span>`:''}<br>کل بل: <b dir="ltr">${n(b.total)}</b>${b.paid_now>0?`<br>وصول ہوئے: <span dir="ltr">${n(b.paid_now)}</span> (${esc(b.payment_method||'')})`:''}<br>گاہک کا موجودہ بیلنس: <b dir="ltr">${n(bl?.balance)}</b>${b.note?`<br>نوٹ: ${esc(b.note)}`:''}</p>${S.shop.bill_note?`<p class="c">${esc(S.shop.bill_note)}</p>`:''}
+ <div class="bt"><button class="pri" id="pr">پرنٹ</button><button id="cr">بند</button></div></div>`;
+ document.body.append(d);$('#pr').onclick=()=>window.print();$('#cr').onclick=()=>d.remove()}
+
+const PM='<option>نقد</option><option>بینک ٹرانسفر</option><option>ایزی پیسہ / جاز کیش</option><option>چیک</option>';
+async function colNew(cid){shell('وصولی درج کریں','<p class="c">…</p>',1);
+ const[cs,ss]=await Promise.all([q(sb.from('customers').select('id,name').eq('shop_id',S.shop.id).eq('is_active',true).order('name')),q(sb.from('suppliers').select('id,name').eq('shop_id',S.shop.id).eq('is_active',true).order('name'))]);
+ if(!cs.length){toast('پہلے گاہک شامل کریں',1);return go('cust')}
+ const rid=crypto.randomUUID(),op=a=>a.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+ $('main').innerHTML=`<label>گاہک (جس نے ادا کیا)<select id="cc">${cs.map(c=>`<option value="${c.id}" ${c.id===cid?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label>رقم<input id="am" type="number" inputmode="decimal" step="0.01" min="0" dir="ltr"></label><label>تاریخ<input id="dt" type="date" value="${today()}"></label><label>طریقہ<select id="pm">${PM}</select></label><label>اکاؤنٹ کا نام<input id="pa"></label><label>3rd Party (اگر کسی اور نے ادا کی)<input id="p3"></label><label>نوٹ<input id="nt"></label>
+ <label>یہ رقم کہاں جمع ہو؟<select id="tg"><option value="self">اسی گاہک کے کھاتے میں</option><option value="customer">دوسرے گاہک کے کھاتے میں</option><option value="supplier">سپلائر کے کھاتے میں</option></select></label><div id="tw"></div><button class="pri" id="sv" style="width:100%">محفوظ کریں</button>
+ <h4>وصولیاں تلاش کریں</h4><input id="sq" placeholder="رسید نمبر، 3rd Party، اکاؤنٹ یا نوٹ…"><div id="rs" class="c">…</div>`;
+ $('#tg').onchange=e=>{const v=e.target.value;$('#tw').innerHTML=v==='customer'?`<label>کس گاہک کے کھاتے میں؟<select id="ti">${op(cs)}</select></label>`:v==='supplier'?(ss.length?`<label>کس سپلائر کے کھاتے میں؟<select id="ti">${op(ss)}</select></label>`:'<p class="c">پہلے سپلائر شامل کریں</p>'):''};
+ const load=async()=>{const t=$('#sq').value.trim().replace(/[,()%*]/g,' ');let k=sb.from('customer_transactions').select('receipt_no,txn_date,amount,details,payment_method,third_party,customers(name)').eq('shop_id',S.shop.id).eq('txn_type','payment').order('created_at',{ascending:false}).limit(20);
+  if(t)k=k.or(`receipt_no.ilike.%${t}%,details.ilike.%${t}%,third_party.ilike.%${t}%,account_name.ilike.%${t}%`);
+  const r=await q(k);$('#rs').className='';$('#rs').innerHTML=r.map(x=>`<div class="card row" data-rc="${esc(x.receipt_no)}"><div>${esc(x.customers.name)}<small dir="ltr">${esc(x.receipt_no)} · ${x.txn_date}</small><small>${esc([x.payment_method,x.third_party,x.details].filter(Boolean).join(' · '))}</small></div><div class="amt">${n(x.amount)}</div></div>`).join('')||'<p class="c">کوئی وصولی نہیں ملی</p>'};
+ load().catch(e=>toast(e.message,1));let tm;$('#sq').oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>load().catch(e=>toast(e.message,1)),350)};
+ $('#sv').onclick=e=>busy(e.target,async()=>{const a=parseFloat($('#am').value);if(!(a>0))throw new Error('درست رقم لکھیں');const tg=$('#tg').value,ti=$('#ti')?.value||null;if(tg!=='self'&&!ti)throw new Error('جمع ہونے والا کھاتہ چنیں');
+  const r=await q(sb.rpc('add_collection',{p_customer_id:$('#cc').value,p_amount:a,p_date:$('#dt').value||today(),p_method:$('#pm').value,p_account:$('#pa').value.trim()||null,p_third_party:$('#p3').value.trim()||null,p_note:$('#nt').value.trim()||null,p_target:tg,p_target_id:tg==='self'?null:ti,p_request_id:rid}));
+  toast('محفوظ ہو گیا');await colNew($('#cc').value);r.kind==='receipt'?receipt(r.no):voucher(r.no)})}
+async function report(){let last='',rng='';
+ const tbl=(h,r)=>`<div class="card sc"><table class="tb"><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${r.map(x=>`<tr>${x.map((c,i)=>`<td class="${i?'n':''}">${c}</td>`).join('')}</tr>`).join('')||'<tr><td colspan="9" class="c">کوئی ریکارڈ نہیں</td></tr>'}</table></div>`;
+ const cd=(l,v)=>`<div class="card"><small>${l}</small><b>${v}</b></div>`;
+ shell('رپورٹس',`<div class="bar" style="grid-auto-flow:row;grid-template-columns:repeat(4,1fr)"><button data-r="t">آج</button><button data-r="m">مہینہ</button><button data-r="y">سال</button><button data-r="a">سب</button></div><div class="g"><label>سے<input id="rf" type="date"></label><label>تک<input id="rt" type="date"></label></div><button class="pri" id="go2" style="width:100%;margin-bottom:10px">دکھائیں</button><div id="rb" class="c"></div>`);
+ const T=today();$('#rf').value=T.slice(0,8)+'01';$('#rt').value=T;
+ const load=async()=>{const f=$('#rf').value,t=$('#rt').value;if(!f||!t||f>t)throw new Error('درست تاریخیں چنیں');$('#rb').innerHTML='…';
+  const d=await q(sb.rpc('get_report',{p_shop_id:S.shop.id,p_from:f,p_to:t}));rng=f+' → '+t;
+  last=`<div class="g">${cd('کل سیل',n(d.sales))}${cd('بلز کی تعداد',d.bill_count)}${cd('کل وصولی',n(d.collections))}${cd('سپلائرز کو ادائیگی',n(d.supplier_payments))}${cd('کل باقی (ابھی)',n(d.outstanding))}</div><h4>مال کے حساب سے سیل</h4>${tbl(['مال','مقدار','رقم'],d.by_product.map(x=>[esc(x.name),Number(x.qty),n(x.amount)]))}<h4>وصولی کا طریقہ</h4>${tbl(['طریقہ','رقم'],d.by_method.map(x=>[esc(x.method),n(x.amount)]))}<h4>سب سے زیادہ باقی</h4>${tbl(['گاہک','باقی'],d.top_balances.map(x=>[esc(x.name),n(x.balance)]))}<button id="pr2" style="width:100%">رپورٹ پرنٹ کریں</button>`;
+  $('#rb').className='';$('#rb').innerHTML=last;
+  $('#pr2').onclick=()=>{$('#rc')?.remove();const o=document.createElement('div');o.id='rc';o.className='ov';o.innerHTML=`<div class="sheet"><h3 style="text-align:center">${esc(S.shop.business_name)}</h3><p class="c" dir="ltr">${rng}</p>${last.replace(/<button id="pr2".*$/,'')}<div class="bt"><button class="pri" id="pr3">پرنٹ</button><button id="cr3">بند</button></div></div>`;document.body.append(o);$('#pr3').onclick=()=>window.print();$('#cr3').onclick=()=>o.remove()}};
+ document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const k=b.dataset.r;$('#rf').value=k==='t'?T:k==='m'?T.slice(0,8)+'01':k==='y'?T.slice(0,4)+'-01-01':'2000-01-01';$('#rt').value=T;load().catch(e=>toast(e.message,1))});
+ $('#go2').onclick=e=>busy(e.target,load);load().catch(e=>toast(e.message,1))}
+
+const CS={pending:'زیرِ التوا',cleared:'کلیئر',bounced:'باؤنس'},CD={received:'ہمیں ملا',given:'ہم نے دیا'};
+const lst=t=>sb.from(t).select('id,name').eq('shop_id',S.shop.id).eq('is_active',true).order('name');
+const opt=a=>a.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+async function chqList(){shell('چیک','<div id="cs"></div><div class="g"><label>قسم<select id="fd"><option value="">سب</option><option value="received">ہمیں ملے</option><option value="given">ہم نے دیے</option></select></label><label>حالت<select id="fs"><option value="pending">زیرِ التوا</option><option value="cleared">کلیئر</option><option value="bounced">باؤنس</option><option value="">سب</option></select></label></div><div id="ls" class="c">…</div><div class="bar" style="grid-auto-flow:row;grid-template-columns:1fr 1fr"><button class="pri" id="a1">+ ہمیں چیک ملا</button><button class="pri" id="a2">+ ہم نے چیک دیا</button></div>',1);
+ const[cs,ss,ch]=await Promise.all([q(lst('customers')),q(lst('suppliers')),q(sb.from('cheques').select('*,customers(name),suppliers(name)').eq('shop_id',S.shop.id).order('cheque_date').limit(500))]);
+ const T=today(),pe=ch.filter(x=>x.status==='pending'),sm=d=>pe.filter(x=>x.direction===d).reduce((a,x)=>a+Number(x.amount),0);
+ $('#cs').innerHTML=`<div class="g" style="margin-bottom:10px"><div class="card"><small>ہمیں ملے (زیرِ التوا)</small><b>${n(sm('received'))}</b></div><div class="card"><small>ہم نے دیے (زیرِ التوا)</small><b>${n(sm('given'))}</b></div><div class="card"><small>تاریخ آ گئی یا گزر گئی</small><b>${pe.filter(x=>x.cheque_date<=T).length}</b></div></div>`;
+ const draw=()=>{const d=$('#fd').value,f=$('#fs').value;$('#ls').className='';$('#ls').innerHTML=ch.filter(x=>(!d||x.direction===d)&&(!f||x.status===f)).map(x=>`<div class="card row" data-c="${x.id}"><div>${esc((x.customers||x.suppliers).name)}<small>${CD[x.direction]} · ${esc(x.cheque_no||'-')} ${esc(x.bank||'')}</small><small dir="ltr">${x.cheque_date} · ${CS[x.status]}${x.posted?' · کھاتے میں درج':''}</small></div><div class="amt">${n(x.amount)}</div></div>`).join('')||'<p class="c">کوئی چیک نہیں</p>'};
+ draw();$('#fd').onchange=draw;$('#fs').onchange=draw;
+ const add=dir=>{const rid=crypto.randomUUID(),L=dir==='received'?cs:ss;if(!L.length)return toast(dir==='received'?'پہلے گاہک شامل کریں':'پہلے سپلائر شامل کریں',1);
+  sheet(dir==='received'?'ہمیں چیک ملا':'ہم نے چیک دیا',`<label>${dir==='received'?'گاہک':'سپلائر'}<select id="w">${opt(L)}</select></label><label>چیک نمبر<input id="cn" dir="ltr"></label><label>بینک<input id="bnk"></label><label>رقم<input id="am" type="number" inputmode="decimal" step="0.01" min="0" dir="ltr"></label><label>چیک کی تاریخ<input id="dt" type="date" value="${today()}"></label><label>نوٹ<input id="nt"></label>`,async()=>{const a=parseFloat($('#am').value);if(!(a>0))throw new Error('درست رقم لکھیں');
+   await q(sb.rpc('add_cheque',{p_shop_id:S.shop.id,p_direction:dir,p_customer_id:dir==='received'?$('#w').value:null,p_supplier_id:dir==='given'?$('#w').value:null,p_cheque_no:$('#cn').value.trim()||null,p_bank:$('#bnk').value.trim()||null,p_amount:a,p_cheque_date:$('#dt').value||today(),p_note:$('#nt').value.trim()||null,p_request_id:rid}));closeSheet();toast('محفوظ ہو گیا');chqList()})};
+ $('#a1').onclick=()=>add('received');$('#a2').onclick=()=>add('given');
+ $('#ls').onclick=e=>{const r=e.target.closest('[data-c]');if(!r)return;const x=ch.find(y=>y.id===r.dataset.c),p=x.status==='pending';
+  sheet('چیک',`<p>${CD[x.direction]}: ${esc((x.customers||x.suppliers).name)}<br>چیک نمبر: ${esc(x.cheque_no||'-')}<br>بینک: ${esc(x.bank||'-')}<br>رقم: <b dir="ltr">${n(x.amount)}</b><br>تاریخ: <span dir="ltr">${x.cheque_date}</span><br>حالت: ${CS[x.status]}${x.ledger_ref?`<br>کھاتے کا حوالہ: <span dir="ltr">${esc(x.ledger_ref)}</span>`:''}${x.note?`<br>نوٹ: ${esc(x.note)}`:''}</p>${p?'<label>کیا کریں؟<select id="ac"><option value="cp">کلیئر اور کھاتے میں درج کریں</option><option value="cn">کلیئر (کھاتے میں درج نہ ہو)</option><option value="b">باؤنس</option></select></label>':''}`,async()=>{if(!p)return closeSheet();const v=$('#ac').value;
+   await q(sb.rpc('set_cheque_status',{p_id:x.id,p_status:v==='b'?'bounced':'cleared',p_post:v==='cp'}));closeSheet();toast('محفوظ ہو گیا');chqList()})}}
+async function amanList(){shell('امانت','<div id="cs"></div><label>دکھائیں<select id="fv"><option value="1">صرف باقی رقم</option><option value="">سب (واپس ہو چکی بھی)</option></select></label><div id="ls" class="c">…</div><button class="pri" id="a1" style="width:100%">+ رقم کسی کے پاس رکھوائی</button>',1);
+ const[cs,bl]=await Promise.all([q(lst('customers')),q(sb.from('amanat_balances').select('*').eq('shop_id',S.shop.id).order('person'))]);
+ const T=today(),op=bl.filter(x=>Number(x.balance)>0);
+ $('#cs').innerHTML=`<div class="g" style="margin-bottom:10px"><div class="card"><small>دوسروں کے پاس ہماری رقم</small><b>${n(op.reduce((a,x)=>a+Number(x.balance),0))}</b></div><div class="card"><small>تاریخ آ گئی یا گزر گئی</small><b>${op.filter(x=>x.earliest_due&&x.earliest_due<=T).length}</b></div></div>`;
+ const draw=()=>{const o=$('#fv').value;$('#ls').className='';$('#ls').innerHTML=bl.filter(x=>!o||Number(x.balance)>0).map(x=>`<div class="card row" data-pn="${esc(x.person)}"><div>${esc(x.person)}<small dir="ltr">${n(x.given)} / ${n(x.returned)}${x.earliest_due?' · '+x.earliest_due:''}</small></div><div class="amt ${Number(x.balance)>0?'pos':''}">${n(x.balance)}</div></div>`).join('')||'<p class="c">کوئی ریکارڈ نہیں</p>'};
+ draw();$('#fv').onchange=draw;
+ $('#a1').onclick=()=>{const rid=crypto.randomUUID();sheet('رقم کسی کے پاس رکھوائی',`<label>شخص کا نام<input id="pp" list="pl"><datalist id="pl">${bl.map(x=>`<option value="${esc(x.person)}">`).join('')}</datalist></label><label>رقم<input id="am" type="number" inputmode="decimal" step="0.01" min="0" dir="ltr"></label><label>تاریخ<input id="dt" type="date" value="${today()}"></label><label>واپسی کی تاریخ (اختیاری)<input id="du" type="date"></label><label>گاہک کے کھاتے سے کم کریں (اختیاری)<select id="cu"><option value="">نہیں</option>${opt(cs)}</select></label><label>نوٹ<input id="nt"></label>`,async()=>{const a=parseFloat($('#am').value);if(!(a>0))throw new Error('درست رقم لکھیں');
+  await q(sb.rpc('add_amanat',{p_shop_id:S.shop.id,p_person:$('#pp').value,p_kind:'given',p_amount:a,p_date:$('#dt').value||today(),p_due:$('#du').value||null,p_customer_id:$('#cu').value||null,p_note:$('#nt').value.trim()||null,p_request_id:rid}));closeSheet();toast('محفوظ ہو گیا');amanList()})};
+ $('#ls').onclick=async e=>{const r=e.target.closest('[data-pn]');if(!r)return;const x=bl.find(y=>y.person===r.dataset.pn),b=Number(x.balance),rid=crypto.randomUUID();
+  const h=await q(sb.from('amanat_entries').select('kind,amount,entry_date,due_date,note').eq('shop_id',S.shop.id).eq('person',x.person).order('entry_date',{ascending:false}).limit(10));
+  sheet(x.person,`<p>اب باقی: <b dir="ltr">${n(b)}</b></p>${h.map(y=>`<div class="card"><small dir="ltr">${y.entry_date}</small> ${y.kind==='given'?'رکھوائی':'واپس'}: <b dir="ltr">${n(y.amount)}</b>${y.due_date?` · واپسی: ${y.due_date}`:''}${y.note?`<br>${esc(y.note)}`:''}</div>`).join('')}${b>0?`<label>واپس ملی رقم<input id="am" type="number" inputmode="decimal" step="0.01" min="0" dir="ltr" value="${b}"></label><label>تاریخ<input id="dt" type="date" value="${today()}"></label><label>نوٹ<input id="nt"></label>`:''}`,async()=>{if(b<=0)return closeSheet();const a=parseFloat($('#am').value);if(!(a>0))throw new Error('درست رقم لکھیں');
+   await q(sb.rpc('add_amanat',{p_shop_id:S.shop.id,p_person:x.person,p_kind:'returned',p_amount:a,p_date:$('#dt').value||today(),p_due:null,p_customer_id:null,p_note:$('#nt').value.trim()||null,p_request_id:rid}));closeSheet();toast('محفوظ ہو گیا');amanList()})}}
+
+const hdr=()=>`<h3 style="text-align:center">${esc(S.shop.business_name)}</h3><p class="c" dir="ltr">${esc(S.shop.phone||'')}${S.shop.whatsapp?' · WhatsApp '+esc(S.shop.whatsapp):''}</p>${S.shop.address?`<p class="c">${esc(S.shop.address)}</p>`:''}${S.shop.working_hours?`<p class="c">${esc(S.shop.working_hours)}</p>`:''}`;
+async function shopInfo(){const s=S.shop;shell('بزنس معلومات',`<label>بزنس کا نام<input id="i1" value="${esc(s.business_name)}"></label><label>فون<input id="i2" dir="ltr" value="${esc(s.phone||'')}"></label><label>واٹس ایپ<input id="i3" dir="ltr" value="${esc(s.whatsapp||'')}"></label><label>کام کے اوقات<input id="i4" value="${esc(s.working_hours||'')}"></label><label>پتہ<input id="i5" value="${esc(s.address||'')}"></label><label>بل کے نیچے نوٹ<input id="i6" value="${esc(s.bill_note||'')}"></label><button class="pri" id="sv" style="width:100%">محفوظ کریں</button>`,1);
+ $('#sv').onclick=e=>busy(e.target,async()=>{S.shop=await q(sb.rpc('update_shop_info',{p_shop_id:s.id,p_name:$('#i1').value,p_phone:$('#i2').value,p_whatsapp:$('#i3').value,p_hours:$('#i4').value,p_address:$('#i5').value,p_note:$('#i6').value}));toast('محفوظ ہو گیا')})}
+async function backup(){shell('بیک اپ','<div class="card"><p>آپ کا سارا ڈیٹا (گاہک، سپلائر، مال، لین دین، بل، چیک، امانت) ایک فائل میں محفوظ ہوگا۔ فائل Files ایپ میں ڈاؤن لوڈ ہوگی۔</p><button class="pri" id="dl" style="width:100%">بیک اپ ڈاؤن لوڈ کریں</button></div><div class="card"><p>بیک اپ فائل سے ڈیٹا واپس لائیں۔ یہ صرف بالکل خالی دکان میں ہو سکتا ہے (جس میں کوئی گاہک، سپلائر، مال یا اندراج نہ ہو)، ورنہ سسٹم انکار کر دیتا ہے۔</p><input id="rf2" type="file" accept=".json,application/json"><div id="ri"></div><button id="rs2" class="pri" style="width:100%" disabled>ڈیٹا واپس لائیں</button></div>',1);
+ const all=async t=>{let o=[],i=0;for(;;){const r=await q(sb.from(t).select('*').eq('shop_id',S.shop.id).order('id').range(i,i+999));o=o.concat(r);if(r.length<1000)return o;i+=1000}};
+ $('#dl').onclick=e=>busy(e.target,async()=>{const T=['customers','suppliers','products','customer_transactions','supplier_transactions','bills','bill_items','cheques','amanat_entries','shipments'],d={app:'textile-khata',date:new Date().toISOString(),shop:S.shop,tables:{}};
+  for(const t of T)d.tables[t]=await all(t);
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,1)],{type:'application/json'}));a.download='textile-khata-backup-'+today()+'.json';document.body.append(a);a.click();a.remove();toast('بیک اپ تیار ہو گیا')});
+ let bk=null;const NM={customers:'گاہک',suppliers:'سپلائر',products:'مال',bills:'بل',bill_items:'بل کے آئٹم',customer_transactions:'گاہک کی انٹریز',supplier_transactions:'سپلائر کی انٹریز',cheques:'چیک',amanat_entries:'امانت',shipments:'شپمنٹ'};
+ $('#rf2').onchange=async e=>{bk=null;$('#rs2').disabled=true;$('#ri').innerHTML='';const f=e.target.files[0];if(!f)return;
+  try{const d=JSON.parse(await f.text());if(d.app!=='textile-khata'||!d.tables||typeof d.tables!=='object')throw 0;bk=d;
+   $('#ri').innerHTML='<p>فائل میں:<br>'+Object.keys(NM).map(k=>`${NM[k]}: <b dir="ltr">${(d.tables[k]||[]).length}</b>`).join('<br>')+`<br>تاریخ: <span dir="ltr">${esc(String(d.date||'').slice(0,10))}</span></p>`;$('#rs2').disabled=false}
+  catch(_){toast('یہ ٹیکسٹائل کھاتہ کی بیک اپ فائل نہیں ہے',1)}};
+ $('#rs2').onclick=e=>{if(!bk)return;if(!confirm('کیا آپ اس فائل کا ڈیٹا اس دکان میں واپس لانا چاہتے ہیں؟'))return;
+  busy(e.target,async()=>{await q(sb.rpc('restore_backup',{p_shop_id:S.shop.id,p_data:bk}));toast('ڈیٹا واپس آ گیا');go('home')})}}
+
+const SG=[['placed','کمپنی کو آرڈر دیا'],['production','مال تیار ہو گیا'],['dispatched','مال لوڈ ہو گیا'],['transit','مال راستے میں ہے'],['port','پورٹ پہنچ گیا'],['warehouse','گودام پہنچ گیا'],['shop','دوکان پہنچ گیا']],SGL=Object.fromEntries(SG);
+async function shipList(){shell('شپمنٹ ٹریکنگ','<input id="sq" placeholder="نمبر، آئٹم، سپلائر، ٹرک یا کمپنی سے تلاش…"><label>اسٹیج<select id="sf"><option value="">تمام اسٹیجز</option>'+SG.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')+'</select></label><div id="ls" class="c">…</div><button class="pri fab" id="add">+ نئی شپمنٹ</button>',1);
+ const[sp,cs,sh]=await Promise.all([q(sb.from('suppliers').select('id,name,is_active').eq('shop_id',S.shop.id).order('name')),q(sb.from('customers').select('id,name,is_active').eq('shop_id',S.shop.id).order('name')),q(sb.from('shipments').select('*').eq('shop_id',S.shop.id).order('created_at',{ascending:false}).limit(500))]);
+ const nm=(a,id)=>a.find(x=>x.id===id)?.name||'-',as=sp.filter(x=>x.is_active),ac=cs.filter(x=>x.is_active);
+ const draw=()=>{const t=$('#sq').value.trim().toLowerCase(),f=$('#sf').value;$('#ls').className='';
+  $('#ls').innerHTML=sh.filter(x=>(!f||x.stage===f)&&[x.shipment_no,x.item,x.truck_no,x.shipping_company,nm(sp,x.supplier_id)].join(' ').toLowerCase().includes(t)).map(x=>`<div class="card row" data-s="${x.id}"><div>${esc(x.shipment_no)} ${esc(x.item||'')}<small>${esc(nm(sp,x.supplier_id))}${x.truck_no?' · ٹرک '+esc(x.truck_no):''}</small><small>${SGL[x.stage]}${x.purchase_voucher?' · خرید '+esc(x.purchase_voucher):''}${x.customer_receipt?' · گاہک '+esc(x.customer_receipt):''}</small></div><div class="amt">${Number(x.kg)} KG<small> ${Number(x.yards)} yd</small></div></div>`).join('')||'<p class="c">کوئی شپمنٹ نہیں</p>'};
+ draw();$('#sq').oninput=draw;$('#sf').onchange=draw;
+ const form=x=>{if(!as.length)return toast('پہلے سپلائر شامل کریں',1);const rid=crypto.randomUUID(),lp=!!x?.purchase_txn_id,lc=!!x?.customer_txn_id,v=(k,d='')=>esc(x&&x[k]!=null?x[k]:d),
+  so=(a,id,none)=>(none?'<option value="">— نہیں —</option>':'')+a.map(y=>`<option value="${y.id}" ${y.id===id?'selected':''}>${esc(y.name)}</option>`).join(''),
+  tx=(l,id,k,dis)=>`<label>${l}<input id="${id}" value="${v(k)}" ${dis?'disabled':''}></label>`,
+  nu=(l,id,k,dis)=>`<label>${l}<input id="${id}" type="number" inputmode="decimal" step="0.001" dir="ltr" value="${v(k)}" ${dis?'disabled':''}></label>`,
+  ck=(id,l,on,dis,ref)=>`<label style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="${id}" style="width:auto;min-height:0;margin:0" ${on?'checked':''} ${dis?'disabled':''}>${l}</label>${ref?`<small class="c">درج ہو چکا: ${esc(ref)}</small>`:''}`;
+  sheet(x?x.shipment_no:'نئی شپمنٹ',`<label>تاریخ<input id="sd" type="date" value="${x?x.entry_date:today()}"></label><label>سپلائر<select id="sup">${so(as,x?.supplier_id)}</select></label><label>کمیشن ایجنٹ (سپلائر)<select id="ag" ${lp?'disabled':''}>${so(as,x?.agent_id,1)}</select></label><label>گاہک<select id="cu" ${lc?'disabled':''}>${so(ac,x?.customer_id,1)}</select></label>${tx('آئٹم','it','item')}${nu('KG','kg','kg',lp)}${nu('یارڈز','yd','yards',lc)}${nu('گانٹھیں (Bales)','bl','bales')}${nu('پیس','pc','pieces')}${tx('شپنگ کمپنی','sc','shipping_company')}${nu('گاہک کا ریٹ (فی یارڈ)','cp','customer_price',lc)}${nu('کسٹم ڈیوٹی ریٹ (فی KG)','dp','duty_price',lp)}${nu('لوڈنگ ریٹ','lp','loading_price')}${tx('ٹرک / ٹرانسپورٹ نمبر','tr','truck_no')}<label>اسٹیج<select id="st">${SG.map(([k,l])=>`<option value="${k}" ${k===(x?.stage||'placed')?'selected':''}>${l}</option>`).join('')}</select></label>${tx('نوٹ','nt','note')}${ck('pp','گودام پہنچنے پر کمیشن ایجنٹ کے سپلائر کھاتے میں خریداری درج کریں',x?.post_to_purchase,lp,x?.purchase_voucher)}${ck('pcu','گاہک کے کھاتے میں ادھار درج کریں',x?.post_to_customer,lc,x?.customer_receipt)}`,async()=>{
+   if(!$('#sup').value)throw new Error('سپلائر چنیں');
+   await q(sb.rpc('save_shipment',{p_shop_id:S.shop.id,p_id:x?x.id:null,p_request_id:rid,p_data:{entry_date:$('#sd').value||today(),supplier_id:$('#sup').value,agent_id:$('#ag').value,customer_id:$('#cu').value,item:$('#it').value,kg:$('#kg').value,yards:$('#yd').value,bales:$('#bl').value,pieces:$('#pc').value,shipping_company:$('#sc').value,customer_price:$('#cp').value,duty_price:$('#dp').value,loading_price:$('#lp').value,truck_no:$('#tr').value,stage:$('#st').value,note:$('#nt').value,post_to_purchase:$('#pp').checked,post_to_customer:$('#pcu').checked}}));
+   closeSheet();toast('محفوظ ہو گیا');shipList()})};
+ $('#add').onclick=()=>form(null);$('#ls').onclick=e=>{const r=e.target.closest('[data-s]');if(r)form(sh.find(x=>x.id===r.dataset.s))}}
+
+async function admin(){shell('ایڈمن: دکانیں','<div id="ls" class="c">…</div><button class="pri fab" id="add">+ نئی دکان</button>',1);
+ const sh=await q(sb.from('shops').select('*').order('created_at',{ascending:false}));
+ const now=Date.now(),lab=x=>x.status==='trial'?(x.trial_ends_at&&new Date(x.trial_ends_at)<now?'ٹرائل ختم':'ٹرائل'):({active:'فعال',expired:'ختم',suspended:'معطل'}[x.status]||x.status);
+ $('#ls').className='';$('#ls').innerHTML=`<p class="c">${sh.length} / 50 دکانیں</p>`+sh.map(x=>`<div class="card row" data-a="${x.id}"><div>${esc(x.business_name)}<small dir="ltr">${esc(x.phone||'')}</small></div><div class="amt">${lab(x)}<small>${x.status==='trial'&&x.trial_ends_at?' '+Math.ceil((new Date(x.trial_ends_at)-now)/864e5)+' دن':''}</small></div></div>`).join('');
+ $('#add').onclick=()=>sheet('نئی دکان اور شاپ کیپر اکاؤنٹ','<label>دکان کا نام<input id="a1"></label><label>فون<input id="a2" dir="ltr" inputmode="tel"></label><label>ای میل (لاگ اِن)<input id="a3" type="email" dir="ltr" autocomplete="off"></label><label>پاس ورڈ (کم از کم 8 حروف)<input id="a4" type="password" dir="ltr" autocomplete="new-password"></label><label>ٹرائل<select id="a5"><option value="7">7 دن</option><option value="14">14 دن</option><option value="30">30 دن</option></select></label>',async()=>{
+  const body={action:'create_shop',business_name:$('#a1').value,phone:$('#a2').value,email:$('#a3').value,password:$('#a4').value,trial_days:+$('#a5').value};
+  const{error}=await sb.functions.invoke('super-function',{body});
+  if(error){let m=error.message;try{const j=await error.context.json();m=j.error||m}catch(_){}throw new Error(m)}
+  closeSheet();toast('دکان بن گئی');admin()});
+ $('#ls').onclick=e=>{const r=e.target.closest('[data-a]');if(!r)return;const x=sh.find(y=>y.id===r.dataset.a);
+  sheet(x.business_name,`<p dir="ltr">${esc(x.phone||'')}${x.trial_ends_at?'<br>Trial ends: '+x.trial_ends_at.slice(0,10):''}</p><label>حالت<select id="ss">${[['trial','ٹرائل'],['active','فعال'],['expired','ختم'],['suspended','معطل']].map(([k,l])=>`<option value="${k}" ${k===x.status?'selected':''}>${l}</option>`).join('')}</select></label><label>ٹرائل بڑھائیں (آج سے، حالت ٹرائل ہو جائے گی)<select id="sd2"><option value="">نہیں</option><option>7</option><option>14</option><option>30</option></select></label>`,async()=>{
+   const d=$('#sd2').value,u={status:$('#ss').value};if(d){u.status='trial';u.trial_days=+d;u.trial_ends_at=new Date(Date.now()+d*864e5).toISOString()}
+   await q(sb.from('shops').update(u).eq('id',x.id));closeSheet();toast('محفوظ ہو گیا');admin()})}}
+start();
+</script></body></html>
