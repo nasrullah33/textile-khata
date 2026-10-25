@@ -30,8 +30,8 @@ header button{background:transparent;color:#fff;border-color:#ffffff55;min-heigh
 .bar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;margin:10px 0}
 .bar button{padding:8px 4px}
 .fab{position:fixed;inset-inline:14px;bottom:78px;width:auto;max-width:612px;margin:auto}
-nav{position:fixed;bottom:0;inset-inline:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--cd);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
-nav button{border:0;border-radius:0;background:none;min-height:60px}
+nav{position:fixed;bottom:0;inset-inline:0;display:grid;grid-template-columns:repeat(5,1fr);background:var(--cd);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{border:0;border-radius:0;background:none;min-height:60px;padding:0 2px;font-size:15px}
 nav .on{color:var(--pr);font-weight:700;box-shadow:inset 0 3px var(--pr)}
 .c{text-align:center;color:var(--mu)}
 .box{max-width:420px;margin:12vh auto;padding:20px}
@@ -62,10 +62,10 @@ async function q(p){const r=await p;if(r.error){if(/JWT|expired/i.test(r.error.m
 async function busy(b,f){if(b.disabled)return;b.disabled=true;const t=b.textContent;b.textContent='…';try{await f()}catch(e){toast(e.message||String(e),1)}finally{b.disabled=false;b.textContent=t}}
 function sheet(title,html,ok){closeSheet();const d=document.createElement('div');d.id='sh';d.className='ov';d.innerHTML=`<div class="sheet"><h3>${esc(title)}</h3>${html}<div class="bt"><button class="pri" id="ok">محفوظ کریں</button><button id="cx">منسوخ</button></div></div>`;document.body.append(d);$('#cx').onclick=closeSheet;$('#ok').onclick=e=>busy(e.target,ok)}
 const closeSheet=()=>$('#sh')?.remove();
-function shell(title,body,back){app.innerHTML=`<header>${back?'<button id="bk">→</button>':''}<b>${esc(title)}</b>${back?'':'<button id="out">خروج</button>'}</header><main>${body}</main>${back?'':`<nav>${[['home','ڈیش بورڈ'],['cust','گاہک'],['supp','سپلائر'],['prod','مال']].map(([k,l])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}">${l}</button>`).join('')}</nav>`}`;
+function shell(title,body,back){app.innerHTML=`<header>${back?'<button id="bk">→</button>':''}<b>${esc(title)}</b>${back?'':'<button id="out">خروج</button>'}</header><main>${body}</main>${back?'':`<nav>${[['home','ڈیش بورڈ'],['cust','گاہک'],['supp','سپلائر'],['prod','مال'],['rep','رپورٹ']].map(([k,l])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}">${l}</button>`).join('')}</nav>`}`;
  if(back)$('#bk').onclick=()=>go(S.tab);else $('#out').onclick=()=>sb.auth.signOut()}
 document.addEventListener('click',e=>{const t=e.target.closest('[data-tab]');if(t)return go(t.dataset.tab);const r=e.target.closest('[data-go]');if(r)return go(r.dataset.go,r.dataset.id);const c=e.target.closest('[data-rc]');if(c)return receipt(c.dataset.rc);const v=e.target.closest('[data-sv]');if(v)return voucher(v.dataset.sv);const b=e.target.closest('[data-bill]');if(b)billView(b.dataset.bill)});
-function go(v,id){S.view=v;S.id=id;if(['home','cust','supp','prod'].includes(v))S.tab=v;closeSheet();({home,cust:custList,supp:suppList,cd:custDetail,sd:suppDetail,prod:prodList,bill:billNew}[v])(id).catch(e=>toast(e.message||String(e),1))}
+function go(v,id){S.view=v;S.id=id;if(['home','cust','supp','prod','rep'].includes(v))S.tab=v;closeSheet();({home,cust:custList,supp:suppList,cd:custDetail,sd:suppDetail,prod:prodList,bill:billNew,rep:report,col:colNew}[v])(id).catch(e=>toast(e.message||String(e),1))}
 
 /* ---- sign in ---- */
 function setup(){app.innerHTML=`<div class="box"><h2>ٹیکسٹائل کھاتہ</h2><p>Supabase کی publishable key یہاں ایک بار پیسٹ کریں (secret یا service-role key ہرگز نہیں)۔</p><input id="k" dir="ltr" placeholder="sb_publishable_..."><button class="pri" id="sv" style="width:100%">محفوظ کریں</button></div>`;$('#sv').onclick=()=>{const k=$('#k').value.trim();if(!k||/secret|service_role/i.test(k))return toast('درست publishable key لکھیں',1);localStorage.setItem('tk_key',k);start()}}
@@ -83,7 +83,7 @@ async function noShop(){const adm=(await q(sb.from('profiles').select('role').eq
 /* ---- dashboard ---- */
 async function home(){shell(S.shop.business_name,'<p class="c">…</p>');const d=await q(sb.rpc('get_dashboard',{p_shop_id:S.shop.id,p_date:today()}));
  const c=(l,v,m)=>`<div class="card"><small>${l}</small><b>${m?n(v):v}</b></div>`;
- $('main').innerHTML=`<button class="pri" data-go="bill" style="width:100%;margin-bottom:10px">+ نیا بل</button><div class="g">${c('گاہک',d.customer_count)}${c('سپلائر',d.supplier_count)}${c('کل وصولیاں (لینے ہیں)',d.total_receivables,1)}${c('کل ادائیگیاں (دینے ہیں)',d.total_payables,1)}${c('آج کی وصولی',d.today_collections,1)}${c('آج کی ادائیگی',d.today_payments,1)}${c('آج کی فروخت',d.today_sales,1)}${c('آج کی خریداری',d.today_purchases,1)}</div>`;homeBills()}
+ $('main').innerHTML=`<div class="g" style="margin-bottom:10px"><button class="pri" data-go="bill">+ نیا بل</button><button class="pri" data-go="col">+ وصولی</button></div><div class="g">${c('گاہک',d.customer_count)}${c('سپلائر',d.supplier_count)}${c('کل وصولیاں (لینے ہیں)',d.total_receivables,1)}${c('کل ادائیگیاں (دینے ہیں)',d.total_payables,1)}${c('آج کی وصولی',d.today_collections,1)}${c('آج کی ادائیگی',d.today_payments,1)}${c('آج کی فروخت',d.today_sales,1)}${c('آج کی خریداری',d.today_purchases,1)}</div>`;homeBills()}
 
 /* ---- lists ---- */
 function rowH(go,id,name,ph,b,sup){const owe=sup?b>0:b>0;return `<div class="card row" data-go="${go}" data-id="${id}"><div>${esc(name)}<small dir="ltr">${esc(ph||'')}</small></div><div class="amt ${owe?'pos':'neg'}">${n(Math.abs(b))}<small> ${b===0?'':(sup?(b>0?'دینے ہیں':'لینے ہیں'):(b>0?'لینے ہیں':'دینے ہیں'))}</small></div></div>`}
@@ -108,7 +108,7 @@ async function custDetail(id){shell('…','<p class="c">…</p>',1);
    const r=await q(sb.rpc('add_customer_transaction',{p_customer_id:id,p_type:t,p_amount:a,p_details:$('#dd').value.trim()||null,p_date:$('#dt').value||today(),p_request_id:rid}));closeSheet();await custDetail(id);receipt(r.receipt_no)})})}
 async function receipt(no){const[t]=await q(sb.from('customer_transactions').select('*,customers(name,phone)').eq('shop_id',S.shop.id).eq('receipt_no',no));if(!t)return toast('رسید نہیں ملی',1);
  const[b]=await q(sb.from('customer_balances').select('balance').eq('customer_id',t.customer_id));const d=document.createElement('div');d.id='rc';d.className='ov';
- d.innerHTML=`<div class="sheet"><h3 style="text-align:center">${esc(S.shop.business_name)}</h3><p class="c" dir="ltr">${esc(S.shop.phone||'')}</p><hr><p>رسید نمبر: <b dir="ltr">${esc(t.receipt_no)}</b><br>تاریخ: <span dir="ltr">${t.txn_date}</span><br>گاہک: ${esc(t.customers.name)}<br>قسم: ${TL[t.txn_type]}<br>رقم: <b dir="ltr">${n(t.amount)}</b><br>تفصیل: ${esc(t.details||'-')}<br>موجودہ بیلنس: <span dir="ltr">${n(b?.balance)}</span></p><div class="bt"><button class="pri" id="pr">پرنٹ</button><button id="cr">بند</button></div></div>`;
+ d.innerHTML=`<div class="sheet"><h3 style="text-align:center">${esc(S.shop.business_name)}</h3><p class="c" dir="ltr">${esc(S.shop.phone||'')}</p><hr><p>رسید نمبر: <b dir="ltr">${esc(t.receipt_no)}</b><br>تاریخ: <span dir="ltr">${t.txn_date}</span><br>گاہک: ${esc(t.customers.name)}<br>قسم: ${TL[t.txn_type]}<br>${t.payment_method?`طریقہ: ${esc(t.payment_method)}<br>`:''}${t.account_name?`اکاؤنٹ: ${esc(t.account_name)}<br>`:''}${t.third_party?`3rd Party: ${esc(t.third_party)}<br>`:''}رقم: <b dir="ltr">${n(t.amount)}</b><br>تفصیل: ${esc(t.details||'-')}<br>موجودہ بیلنس: <span dir="ltr">${n(b?.balance)}</span></p><div class="bt"><button class="pri" id="pr">پرنٹ</button><button id="cr">بند</button></div></div>`;
  document.body.append(d);$('#pr').onclick=()=>window.print();$('#cr').onclick=()=>d.remove()}
 
 /* ---- supplier ---- */
@@ -170,5 +170,34 @@ async function billView(id){$('#rc')?.remove();const[b]=await q(sb.from('bills')
  <p>ذیلی کل: <span dir="ltr">${n(b.subtotal)}</span>${b.discount_amount>0?`<br>ڈسکاؤنٹ: <span dir="ltr">${n(b.discount_amount)}</span>`:''}<br>کل بل: <b dir="ltr">${n(b.total)}</b>${b.paid_now>0?`<br>وصول ہوئے: <span dir="ltr">${n(b.paid_now)}</span> (${esc(b.payment_method||'')})`:''}<br>گاہک کا موجودہ بیلنس: <b dir="ltr">${n(bl?.balance)}</b>${b.note?`<br>نوٹ: ${esc(b.note)}`:''}</p>
  <div class="bt"><button class="pri" id="pr">پرنٹ</button><button id="cr">بند</button></div></div>`;
  document.body.append(d);$('#pr').onclick=()=>window.print();$('#cr').onclick=()=>d.remove()}
+
+const PM='<option>نقد</option><option>بینک ٹرانسفر</option><option>ایزی پیسہ / جاز کیش</option><option>چیک</option>';
+async function colNew(cid){shell('وصولی درج کریں','<p class="c">…</p>',1);
+ const[cs,ss]=await Promise.all([q(sb.from('customers').select('id,name').eq('shop_id',S.shop.id).eq('is_active',true).order('name')),q(sb.from('suppliers').select('id,name').eq('shop_id',S.shop.id).eq('is_active',true).order('name'))]);
+ if(!cs.length){toast('پہلے گاہک شامل کریں',1);return go('cust')}
+ const rid=crypto.randomUUID(),op=a=>a.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+ $('main').innerHTML=`<label>گاہک (جس نے ادا کیا)<select id="cc">${cs.map(c=>`<option value="${c.id}" ${c.id===cid?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label>رقم<input id="am" type="number" inputmode="decimal" step="0.01" min="0" dir="ltr"></label><label>تاریخ<input id="dt" type="date" value="${today()}"></label><label>طریقہ<select id="pm">${PM}</select></label><label>اکاؤنٹ کا نام<input id="pa"></label><label>3rd Party (اگر کسی اور نے ادا کی)<input id="p3"></label><label>نوٹ<input id="nt"></label>
+ <label>یہ رقم کہاں جمع ہو؟<select id="tg"><option value="self">اسی گاہک کے کھاتے میں</option><option value="customer">دوسرے گاہک کے کھاتے میں</option><option value="supplier">سپلائر کے کھاتے میں</option></select></label><div id="tw"></div><button class="pri" id="sv" style="width:100%">محفوظ کریں</button>
+ <h4>وصولیاں تلاش کریں</h4><input id="sq" placeholder="رسید نمبر، 3rd Party، اکاؤنٹ یا نوٹ…"><div id="rs" class="c">…</div>`;
+ $('#tg').onchange=e=>{const v=e.target.value;$('#tw').innerHTML=v==='customer'?`<label>کس گاہک کے کھاتے میں؟<select id="ti">${op(cs)}</select></label>`:v==='supplier'?(ss.length?`<label>کس سپلائر کے کھاتے میں؟<select id="ti">${op(ss)}</select></label>`:'<p class="c">پہلے سپلائر شامل کریں</p>'):''};
+ const load=async()=>{const t=$('#sq').value.trim().replace(/[,()%*]/g,' ');let k=sb.from('customer_transactions').select('receipt_no,txn_date,amount,details,payment_method,third_party,customers(name)').eq('shop_id',S.shop.id).eq('txn_type','payment').order('created_at',{ascending:false}).limit(20);
+  if(t)k=k.or(`receipt_no.ilike.%${t}%,details.ilike.%${t}%,third_party.ilike.%${t}%,account_name.ilike.%${t}%`);
+  const r=await q(k);$('#rs').className='';$('#rs').innerHTML=r.map(x=>`<div class="card row" data-rc="${esc(x.receipt_no)}"><div>${esc(x.customers.name)}<small dir="ltr">${esc(x.receipt_no)} · ${x.txn_date}</small><small>${esc([x.payment_method,x.third_party,x.details].filter(Boolean).join(' · '))}</small></div><div class="amt">${n(x.amount)}</div></div>`).join('')||'<p class="c">کوئی وصولی نہیں ملی</p>'};
+ load().catch(e=>toast(e.message,1));let tm;$('#sq').oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>load().catch(e=>toast(e.message,1)),350)};
+ $('#sv').onclick=e=>busy(e.target,async()=>{const a=parseFloat($('#am').value);if(!(a>0))throw new Error('درست رقم لکھیں');const tg=$('#tg').value,ti=$('#ti')?.value||null;if(tg!=='self'&&!ti)throw new Error('جمع ہونے والا کھاتہ چنیں');
+  const r=await q(sb.rpc('add_collection',{p_customer_id:$('#cc').value,p_amount:a,p_date:$('#dt').value||today(),p_method:$('#pm').value,p_account:$('#pa').value.trim()||null,p_third_party:$('#p3').value.trim()||null,p_note:$('#nt').value.trim()||null,p_target:tg,p_target_id:tg==='self'?null:ti,p_request_id:rid}));
+  toast('محفوظ ہو گیا');await colNew($('#cc').value);r.kind==='receipt'?receipt(r.no):voucher(r.no)})}
+async function report(){let last='',rng='';
+ const tbl=(h,r)=>`<div class="card sc"><table class="tb"><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${r.map(x=>`<tr>${x.map((c,i)=>`<td class="${i?'n':''}">${c}</td>`).join('')}</tr>`).join('')||'<tr><td colspan="9" class="c">کوئی ریکارڈ نہیں</td></tr>'}</table></div>`;
+ const cd=(l,v)=>`<div class="card"><small>${l}</small><b>${v}</b></div>`;
+ shell('رپورٹس',`<div class="bar" style="grid-auto-flow:row;grid-template-columns:repeat(4,1fr)"><button data-r="t">آج</button><button data-r="m">مہینہ</button><button data-r="y">سال</button><button data-r="a">سب</button></div><div class="g"><label>سے<input id="rf" type="date"></label><label>تک<input id="rt" type="date"></label></div><button class="pri" id="go2" style="width:100%;margin-bottom:10px">دکھائیں</button><div id="rb" class="c"></div>`);
+ const T=today();$('#rf').value=T.slice(0,8)+'01';$('#rt').value=T;
+ const load=async()=>{const f=$('#rf').value,t=$('#rt').value;if(!f||!t||f>t)throw new Error('درست تاریخیں چنیں');$('#rb').innerHTML='…';
+  const d=await q(sb.rpc('get_report',{p_shop_id:S.shop.id,p_from:f,p_to:t}));rng=f+' → '+t;
+  last=`<div class="g">${cd('کل سیل',n(d.sales))}${cd('بلز کی تعداد',d.bill_count)}${cd('کل وصولی',n(d.collections))}${cd('سپلائرز کو ادائیگی',n(d.supplier_payments))}${cd('کل باقی (ابھی)',n(d.outstanding))}</div><h4>مال کے حساب سے سیل</h4>${tbl(['مال','مقدار','رقم'],d.by_product.map(x=>[esc(x.name),Number(x.qty),n(x.amount)]))}<h4>وصولی کا طریقہ</h4>${tbl(['طریقہ','رقم'],d.by_method.map(x=>[esc(x.method),n(x.amount)]))}<h4>سب سے زیادہ باقی</h4>${tbl(['گاہک','باقی'],d.top_balances.map(x=>[esc(x.name),n(x.balance)]))}<button id="pr2" style="width:100%">رپورٹ پرنٹ کریں</button>`;
+  $('#rb').className='';$('#rb').innerHTML=last;
+  $('#pr2').onclick=()=>{$('#rc')?.remove();const o=document.createElement('div');o.id='rc';o.className='ov';o.innerHTML=`<div class="sheet"><h3 style="text-align:center">${esc(S.shop.business_name)}</h3><p class="c" dir="ltr">${rng}</p>${last.replace(/<button id="pr2".*$/,'')}<div class="bt"><button class="pri" id="pr3">پرنٹ</button><button id="cr3">بند</button></div></div>`;document.body.append(o);$('#pr3').onclick=()=>window.print();$('#cr3').onclick=()=>o.remove()}};
+ document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const k=b.dataset.r;$('#rf').value=k==='t'?T:k==='m'?T.slice(0,8)+'01':k==='y'?T.slice(0,4)+'-01-01':'2000-01-01';$('#rt').value=T;load().catch(e=>toast(e.message,1))});
+ $('#go2').onclick=e=>busy(e.target,load);load().catch(e=>toast(e.message,1))}
 start();
 </script></body></html>
